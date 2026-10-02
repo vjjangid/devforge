@@ -1,0 +1,102 @@
+@if (tracker.deployment(); as deployment) {
+  <a class="breadcrumb" [routerLink]="['/applications', deployment.applicationId]">
+    ← {{ deployment.applicationName }}
+  </a>
+
+  <div class="page-header">
+    <div>
+      <div class="title-row">
+        <h1>Deployment #{{ deployment.number }}</h1>
+        <app-status-badge kind="deployment" [status]="deployment.status" />
+      </div>
+      <p class="subtitle">
+        <a [routerLink]="['/applications', deployment.applicationId]">{{ deployment.applicationName }}</a>
+        · Version {{ deployment.version }}
+      </p>
+    </div>
+  </div>
+
+  <div class="stack">
+    @if (tracker.error(); as error) {
+      <app-error-alert
+        [message]="'Live updates stopped: ' + error.message"
+        [retryable]="true"
+        (retry)="resume()"
+      />
+    }
+
+    @if (deployment.status === 'Failed') {
+      <section class="outcome failed" role="alert">
+        <h2><span class="dot" aria-hidden="true"></span>Deployment failed</h2>
+        <p>{{ deployment.errorMessage ?? 'No error message was recorded.' }}</p>
+      </section>
+    } @else if (deployment.status === 'Succeeded') {
+      <section class="outcome succeeded">
+        <h2><span class="dot" aria-hidden="true"></span>Deployment succeeded</h2>
+        <p>{{ deployment.version }} of {{ deployment.applicationName }} is live.</p>
+      </section>
+    }
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Pipeline</h2>
+        @if (deployment.simulateFailure) {
+          <span class="muted">Failure simulation on</span>
+        }
+      </div>
+      <div class="card-body">
+        <app-pipeline-steps [steps]="deployment.pipeline" />
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-body">
+        <dl class="details">
+          <div>
+            <dt>Queued</dt>
+            <dd>{{ deployment.createdAt | date: 'y-MM-dd HH:mm:ss' }}</dd>
+          </div>
+          <div>
+            <dt>Started</dt>
+            <dd>
+              @if (deployment.startedAt; as startedAt) {
+                {{ startedAt | date: 'y-MM-dd HH:mm:ss' }}
+              } @else {
+                <span class="muted">Waiting for a worker</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Completed</dt>
+            <dd>
+              @if (deployment.completedAt; as completedAt) {
+                {{ completedAt | date: 'y-MM-dd HH:mm:ss' }}
+              } @else {
+                <span class="muted">—</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Duration</dt>
+            <dd class="duration">{{ elapsed() | duration }}</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Logs</h2>
+        @if (tracker.active()) {
+          <span class="muted">Updating live</span>
+        }
+      </div>
+      <app-deployment-logs [logs]="tracker.logs()" [live]="tracker.active()" />
+    </section>
+  </div>
+} @else if (tracker.error(); as error) {
+  <a class="breadcrumb" routerLink="/applications">← Applications</a>
+  <app-error-alert [message]="error.message" [retryable]="!error.isNotFound" (retry)="resume()" />
+} @else {
+  <app-loading label="Loading deployment…" />
+}

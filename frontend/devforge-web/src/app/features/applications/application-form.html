@@ -1,0 +1,100 @@
+<a class="breadcrumb" [routerLink]="cancelLink()">← Back</a>
+
+<div class="page-header">
+  <div>
+    <h1>{{ isEdit() ? 'Edit application' : 'New application' }}</h1>
+    <p class="subtitle">
+      {{ isEdit() ? 'Change where this application is built from.' : 'Register a Git repository to deploy.' }}
+    </p>
+  </div>
+</div>
+
+@if (loadError(); as error) {
+  <app-error-alert [message]="error.message" [retryable]="!error.isNotFound" (retry)="retryLoad()" />
+} @else if (loadingApplication()) {
+  <app-loading label="Loading application…" />
+} @else {
+  <form class="card form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    @if (submitError(); as message) {
+      <app-error-alert [message]="message" />
+    }
+
+    <div class="field">
+      <label for="name">Name</label>
+      <input id="name" type="text" formControlName="name" autocomplete="off" [class.invalid]="errorFor('name')" />
+      @if (errorFor('name'); as error) {
+        <span class="error">{{ error }}</span>
+      }
+    </div>
+
+    <div class="field">
+      <label for="repositoryUrl">Repository URL</label>
+      <input
+        id="repositoryUrl"
+        type="text"
+        class="mono"
+        formControlName="repositoryUrl"
+        placeholder="github.com/owner/repo"
+        autocomplete="off"
+        spellcheck="false"
+        [class.invalid]="errorFor('repositoryUrl')"
+      />
+      @if (errorFor('repositoryUrl'); as error) {
+        <span class="error">{{ error }}</span>
+      } @else {
+        <span class="hint">An http(s) Git URL. https:// is assumed when omitted.</span>
+      }
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="branch">Branch</label>
+        <input
+          id="branch"
+          type="text"
+          class="mono"
+          formControlName="branch"
+          autocomplete="off"
+          spellcheck="false"
+          [class.invalid]="errorFor('branch')"
+        />
+        @if (errorFor('branch'); as error) {
+          <span class="error">{{ error }}</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="runtime">Runtime</label>
+        <select id="runtime" formControlName="runtime" [class.invalid]="errorFor('runtime')">
+          @for (runtime of runtimes(); track runtime.key) {
+            <option [value]="runtime.key">{{ runtime.displayName }}</option>
+          }
+        </select>
+        @if (errorFor('runtime'); as error) {
+          <span class="error">{{ error }}</span>
+        } @else if (isEdit()) {
+          <span class="hint">The runtime cannot be changed after creation.</span>
+        }
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="description">Description <span class="muted optional">(optional)</span></label>
+      <textarea id="description" formControlName="description" [class.invalid]="errorFor('description')"></textarea>
+      @if (errorFor('description'); as error) {
+        <span class="error">{{ error }}</span>
+      }
+    </div>
+
+    <div class="form-actions">
+      <a class="btn" [routerLink]="cancelLink()">Cancel</a>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        @if (saving()) {
+          Saving…
+        } @else {
+          {{ isEdit() ? 'Save changes' : 'Create application' }}
+        }
+      </button>
+    </div>
+  </form>
+}

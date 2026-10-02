@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/DevForge.Api/DevForge.Api.csproj" />
+    <Project Path="backend/DevForge.Application/DevForge.Application.csproj" />
+    <Project Path="backend/DevForge.Domain/DevForge.Domain.csproj" />
+    <Project Path="backend/DevForge.Infrastructure/DevForge.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DevForge.IntegrationTests/DevForge.IntegrationTests.csproj" />
+    <Project Path="tests/DevForge.UnitTests/DevForge.UnitTests.csproj" />
+  </Folder>
+  <Folder Name="/worker/">
+    <Project Path="worker/DevForge.Worker/DevForge.Worker.csproj" />
+  </Folder>
+</Solution>

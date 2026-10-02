@@ -1,0 +1,33 @@
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.deploy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.deploy-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.deploy-error {
+  margin-top: var(--space-2);
+  color: var(--danger);
+}
+
+.result {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,26 @@
+# Secrets and local overrides
+.env
+.env.*
+!.env.example
+*.local.json
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+coverage/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+npm-debug.log*
+
+# Editors and OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store

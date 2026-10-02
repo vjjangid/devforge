@@ -1,0 +1,118 @@
+$marker-size: 26px;
+
+.pipeline {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+li {
+  position: relative;
+  display: grid;
+  flex: 1;
+  justify-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 550;
+  text-align: center;
+
+  // Connector to the previous step.
+  &:not(:first-child)::before {
+    content: '';
+    position: absolute;
+    top: calc($marker-size / 2 - 1px);
+    right: calc(50% + $marker-size / 2 + 4px);
+    left: calc(-50% + $marker-size / 2 + 4px);
+    height: 2px;
+    background: var(--border);
+  }
+}
+
+.marker {
+  display: grid;
+  place-items: center;
+  width: $marker-size;
+  height: $marker-size;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.completed {
+  color: var(--text);
+
+  .marker {
+    border-color: var(--success);
+    background: var(--success);
+    color: var(--surface);
+  }
+
+  &::before {
+    background: var(--success) !important;
+  }
+}
+
+.active {
+  color: var(--info);
+
+  .marker {
+    border-color: var(--info);
+    border-top-color: transparent;
+    animation: spin 0.9s linear infinite;
+  }
+
+  &::before {
+    background: var(--success) !important;
+  }
+}
+
+.failed {
+  color: var(--danger);
+
+  .marker {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: var(--surface);
+  }
+
+  &::before {
+    background: var(--success) !important;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .active .marker {
+    border-top-color: var(--info);
+    animation: none;
+  }
+}
+
+// Narrow screens: stack the steps vertically.
+@media (max-width: 560px) {
+  .pipeline {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  li {
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+
+    &::before {
+      display: none;
+    }
+  }
+}

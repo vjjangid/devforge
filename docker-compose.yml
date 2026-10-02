@@ -1,0 +1,83 @@
+# Complete local DevForge platform:  docker compose up --build
+# Requires a .env file (copy .env.example). No credentials live in this file.
+
+name: devforge
+
+x-connection-string: &connection-string
+  ConnectionStrings__DevForge: "Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "${POSTGRES_PORT:-5440}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *connection-string
+      ASPNETCORE_ENVIRONMENT: Production
+      # The API owns the schema: it applies EF Core migrations before it starts serving.
+      Database__MigrateOnStartup: "true"
+      # This stack is a local development environment, so the failure switch is available.
+      Features__FailureSimulation: "true"
+    ports:
+      - "${API_PORT:-5080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *connection-string
+      DOTNET_ENVIRONMENT: Production
+      Simulation__StageDelay: ${SIMULATION_STAGE_DELAY:-00:00:03}
+    depends_on:
+      # Wait for the API so the schema has been migrated before the worker polls it.
+      api:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres-data:

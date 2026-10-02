@@ -1,0 +1,47 @@
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.outcome {
+  padding: var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius);
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  p {
+    margin-top: var(--space-1);
+    color: var(--text);
+    overflow-wrap: anywhere;
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  &.failed {
+    border-color: var(--danger);
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  &.succeeded {
+    border-color: var(--success);
+    background: var(--success-bg);
+    color: var(--success);
+  }
+}
+
+.duration {
+  font-variant-numeric: tabular-nums;
+}

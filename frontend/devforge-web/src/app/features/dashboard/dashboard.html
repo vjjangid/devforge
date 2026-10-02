@@ -1,0 +1,85 @@
+<div class="page-header">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="subtitle">What is registered, what is live, and what happened recently.</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" routerLink="/applications/new">New application</a>
+  </div>
+</div>
+
+@if (state.error(); as error) {
+  <app-error-alert [message]="error.message" [retryable]="true" (retry)="load()" />
+} @else if (state.value(); as summary) {
+  <div class="stack">
+    <section class="stats" aria-label="Summary">
+      <div class="card stat">
+        <span class="label">Applications</span>
+        <span class="value">{{ summary.applications }}</span>
+      </div>
+      <div class="card stat">
+        <span class="label">Running</span>
+        <span class="value">{{ summary.running }}</span>
+      </div>
+      <div class="card stat">
+        <span class="label">Deployments today</span>
+        <span class="value">{{ summary.deploymentsToday }}</span>
+      </div>
+      <div class="card stat" [class.alert]="summary.failedDeployments > 0">
+        <span class="label">Failed deployments</span>
+        <span class="value">{{ summary.failedDeployments }}</span>
+      </div>
+    </section>
+
+    <div class="columns">
+      <section class="card">
+        <div class="card-header">
+          <h2>Recent applications</h2>
+          <a routerLink="/applications">View all</a>
+        </div>
+        @if (summary.recentApplications.length === 0) {
+          <app-empty-state title="No applications yet" message="Register a repository to start deploying it.">
+            <a class="btn btn-primary" routerLink="/applications/new">New application</a>
+          </app-empty-state>
+        } @else {
+          <ul class="list">
+            @for (application of summary.recentApplications; track application.id) {
+              <li>
+                <div class="main">
+                  <a class="name" [routerLink]="['/applications', application.id]">{{ application.name }}</a>
+                  <span class="mono muted">{{ application.repositoryDisplayName }}</span>
+                </div>
+                <app-status-badge kind="application" [status]="application.status" />
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Recent deployments</h2>
+        </div>
+        @if (summary.recentDeployments.length === 0) {
+          <app-empty-state title="No deployments yet" message="Deployments appear here as soon as you trigger one." />
+        } @else {
+          <ul class="list">
+            @for (deployment of summary.recentDeployments; track deployment.id) {
+              <li>
+                <div class="main">
+                  <a class="name" [routerLink]="['/deployments', deployment.id]">
+                    {{ deployment.applicationName }} · {{ deployment.version }}
+                  </a>
+                  <span class="muted">{{ deployment.createdAt | date: 'MMM d, HH:mm' }}</span>
+                </div>
+                <app-status-badge kind="deployment" [status]="deployment.status" />
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
+  </div>
+} @else {
+  <app-loading label="Loading dashboard…" />
+}

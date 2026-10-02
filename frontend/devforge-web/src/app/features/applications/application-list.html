@@ -1,0 +1,81 @@
+<div class="page-header">
+  <div>
+    <h1>Applications</h1>
+    <p class="subtitle">Repositories registered with DevForge.</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" routerLink="/applications/new">New application</a>
+  </div>
+</div>
+
+@if (state.error(); as error) {
+  <app-error-alert [message]="error.message" [retryable]="true" (retry)="load()" />
+} @else if (state.value(); as applications) {
+  <div class="card">
+    @if (applications.length === 0) {
+      <app-empty-state
+        title="No applications yet"
+        message="Register a Git repository and branch. You can deploy it as soon as it is created."
+      >
+        <a class="btn btn-primary" routerLink="/applications/new">New application</a>
+      </app-empty-state>
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Repository</th>
+              <th scope="col">Branch</th>
+              <th scope="col">Runtime</th>
+              <th scope="col">Status</th>
+              <th scope="col">Last deployment</th>
+              <th scope="col">Created</th>
+              <th scope="col"><span class="visually-hidden">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (application of applications; track application.id) {
+              <tr>
+                <td class="primary">
+                  <a [routerLink]="['/applications', application.id]">{{ application.name }}</a>
+                </td>
+                <td class="mono">{{ application.repositoryDisplayName }}</td>
+                <td class="mono">{{ application.branch }}</td>
+                <td>{{ application.runtimeDisplayName }}</td>
+                <td><app-status-badge kind="application" [status]="application.status" /></td>
+                <td>
+                  @if (application.lastDeployment; as deployment) {
+                    <a [routerLink]="['/deployments', deployment.id]">{{ deployment.version }}</a>
+                    <span class="muted"> · {{ deployment.createdAt | date: 'MMM d, HH:mm' }}</span>
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                <td class="muted">{{ application.createdAt | date: 'MMM d, y' }}</td>
+                <td class="row-actions">
+                  <a class="btn btn-quiet" [routerLink]="['/applications', application.id, 'edit']">Edit</a>
+                  <button type="button" class="btn btn-quiet danger" (click)="deletion.request(application)">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+} @else {
+  <app-loading label="Loading applications…" />
+}
+
+<app-confirm-dialog
+  [open]="deletion.target() !== null"
+  [title]="'Delete ' + (deletion.target()?.name ?? 'application') + '?'"
+  message="This permanently removes the application together with its deployment history and logs."
+  [busy]="deletion.busy()"
+  [error]="deletion.error()"
+  (confirmed)="confirmDelete()"
+  (cancelled)="deletion.cancel()"
+/>

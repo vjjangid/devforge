@@ -1,0 +1,142 @@
+@if (state.error(); as error) {
+  <a class="breadcrumb" routerLink="/applications">← Applications</a>
+  <app-error-alert [message]="error.message" [retryable]="!error.isNotFound" (retry)="reload()" />
+} @else if (state.value(); as view) {
+  <a class="breadcrumb" routerLink="/applications">← Applications</a>
+
+  <div class="page-header">
+    <div>
+      <div class="title-row">
+        <h1>{{ view.application.name }}</h1>
+        <app-status-badge kind="application" [status]="view.application.status" />
+      </div>
+      <p class="subtitle mono">{{ view.application.repositoryDisplayName }} · {{ view.application.branch }}</p>
+    </div>
+    <div class="actions">
+      <a class="btn" [routerLink]="['/applications', view.application.id, 'edit']">Edit</a>
+      <button type="button" class="btn" (click)="deletion.request(view.application)">Delete</button>
+    </div>
+  </div>
+
+  <div class="stack">
+    <section class="card">
+      <div class="card-body">
+        <dl class="details">
+          <div>
+            <dt>Repository</dt>
+            <dd>
+              <a [href]="view.application.repositoryUrl" target="_blank" rel="noopener noreferrer" class="mono">
+                {{ view.application.repositoryDisplayName }}
+              </a>
+            </dd>
+          </div>
+          <div>
+            <dt>Branch</dt>
+            <dd class="mono">{{ view.application.branch }}</dd>
+          </div>
+          <div>
+            <dt>Runtime</dt>
+            <dd>{{ view.application.runtimeDisplayName }}</dd>
+          </div>
+          <div>
+            <dt>Created</dt>
+            <dd>{{ view.application.createdAt | date: 'MMM d, y, HH:mm' }}</dd>
+          </div>
+          <div class="wide">
+            <dt>Description</dt>
+            <dd>
+              @if (view.application.description; as description) {
+                {{ description }}
+              } @else {
+                <span class="muted">No description</span>
+              }
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="card deploy">
+      <div>
+        <h2>Deploy</h2>
+        <p class="muted">
+          Queues a deployment of <span class="mono">{{ view.application.branch }}</span
+          >. A worker picks it up and runs the pipeline.
+        </p>
+        @if (deployError(); as message) {
+          <p class="deploy-error" role="alert">{{ message }}</p>
+        }
+      </div>
+      <div class="deploy-controls">
+        @if (failureSimulationAvailable()) {
+          <label class="checkbox">
+            <input type="checkbox" [checked]="simulateFailure()" (change)="toggleSimulateFailure($event)" />
+            Simulate failure
+          </label>
+        }
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="deploying() || view.application.status === 'Deploying'"
+          (click)="deploy()"
+        >
+          @if (deploying()) {
+            Queuing…
+          } @else if (view.application.status === 'Deploying') {
+            Deployment in progress
+          } @else {
+            Deploy
+          }
+        </button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Deployment history</h2>
+      </div>
+      @if (view.deployments.length === 0) {
+        <app-empty-state title="Never deployed" message="Deploy this application to see its history here." />
+      } @else {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Version</th>
+                <th scope="col">Status</th>
+                <th scope="col">Started</th>
+                <th scope="col">Duration</th>
+                <th scope="col">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (deployment of view.deployments; track deployment.id) {
+                <tr>
+                  <td class="primary">
+                    <a [routerLink]="['/deployments', deployment.id]">{{ deployment.version }}</a>
+                  </td>
+                  <td><app-status-badge kind="deployment" [status]="deployment.status" /></td>
+                  <td class="muted">{{ deployment.createdAt | date: 'MMM d, y, HH:mm' }}</td>
+                  <td class="muted">{{ deployment.startedAt | durationBetween: deployment.completedAt }}</td>
+                  <td class="muted result">{{ deployment.errorMessage ?? '' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+  </div>
+
+  <app-confirm-dialog
+    [open]="deletion.target() !== null"
+    [title]="'Delete ' + view.application.name + '?'"
+    message="This permanently removes the application together with its deployment history and logs."
+    [busy]="deletion.busy()"
+    [error]="deletion.error()"
+    (confirmed)="confirmDelete()"
+    (cancelled)="deletion.cancel()"
+  />
+} @else {
+  <app-loading label="Loading application…" />
+}
