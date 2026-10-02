@@ -1,0 +1,140 @@
+# Checks every push and pull request: the backend builds and its tests pass, the frontend builds
+# and its tests pass, and the Docker images build and start as a working stack.
+# Nothing is published or deployed.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+
+jobs:
+  backend:
+    name: Backend (build and test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # The integration tests run against a real PostgreSQL. This one exists only for the duration
+    # of the job, so its credentials are not secrets.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: devforge
+          POSTGRES_PASSWORD: devforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U devforge"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      # Each test class creates and drops its own database on this server.
+      DEVFORGE_TEST_CONNECTION: Host=localhost;Port=5432;Username=devforge;Password=devforge
+      # Runners have a Docker daemon, so include the tests that build real images.
+      DEVFORGE_DOCKER_TESTS: "1"
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore
+
+      # Warnings are errors (Directory.Build.props), so this also fails on any new warning.
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Unit tests
+        run: dotnet test tests/DevForge.UnitTests --configuration Release --no-build
+
+      - name: Integration tests
+        run: dotnet test tests/DevForge.IntegrationTests --configuration Release --no-build
+
+  frontend:
+    name: Frontend (build and test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: frontend/devforge-web
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/devforge-web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Tests
+        run: npm test -- --watch=false
+
+      - name: Production build
+        run: npm run build
+
+  stack:
+    name: Docker Compose (build and smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create the environment file
+        run: cp .env.example .env
+
+      - name: Build images
+        run: docker compose build
+
+      # --wait returns once every service with a health check reports healthy, which means
+      # PostgreSQL is up, the API has applied its migrations, and nginx is serving the frontend.
+      - name: Start the stack
+        run: docker compose up --detach --wait --wait-timeout 180
+
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error http://localhost:5080/health/ready
+          curl --fail --silent --show-error --output /dev/null http://localhost:8080/
+          # Through the frontend's proxy, to prove nginx reaches the API.
+          curl --fail --silent --show-error http://localhost:8080/api/platform
+
+      - name: Show container logs
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down --volumes

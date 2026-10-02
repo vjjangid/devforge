@@ -343,6 +343,10 @@ DEVFORGE_DOCKER_TESTS=1 dotnet test --filter "FullyQualifiedName~DockerBuildTest
 
 The integration tests create a throwaway database per test class and drop it afterwards. They connect to `localhost:5440` by default; set `DEVFORGE_TEST_CONNECTION` to point them at another server.
 
+### Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and on every pull request. It has three jobs: build and test the backend against a PostgreSQL it starts itself (including the Docker tests), build and test the frontend, and build the Compose stack, start it and check that the API and frontend answer. It publishes and deploys nothing.
+
 What is covered:
 
 - **Domain** — application validation, repository URL normalisation, the deployment state machine.
