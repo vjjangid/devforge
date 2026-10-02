@@ -24,6 +24,7 @@ internal sealed class DeploymentConfiguration : IEntityTypeConfiguration<Deploym
         builder.Property(deployment => deployment.Status).HasConversion<string>().HasMaxLength(EnumColumn.MaxLength).IsRequired();
         builder.Property(deployment => deployment.CurrentStage).HasConversion<string>().HasMaxLength(EnumColumn.MaxLength);
         builder.Property(deployment => deployment.ErrorMessage).HasMaxLength(Deployment.ErrorMessageMaxLength);
+        builder.Property(deployment => deployment.Url).HasMaxLength(Deployment.UrlMaxLength);
         builder.Property(deployment => deployment.WorkerId).HasMaxLength(Deployment.WorkerIdMaxLength);
 
         // Deployment history of an application, newest first; also guarantees unique version numbers.

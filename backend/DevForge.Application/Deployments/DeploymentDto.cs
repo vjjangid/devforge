@@ -2,6 +2,10 @@ using DevForge.Domain.Deployments;
 
 namespace DevForge.Application.Deployments;
 
+/// <param name="Url">
+/// Where the application can be opened. Present only while this deployment is the one being served;
+/// an older deployment loses it once a newer one succeeds.
+/// </param>
 public sealed record DeploymentDto(
     Guid Id,
     Guid ApplicationId,
@@ -9,6 +13,8 @@ public sealed record DeploymentDto(
     int Number,
     string Version,
     string? CommitSha,
+    string? ImageReference,
+    string? Url,
     DeploymentStatus Status,
     DeploymentStage? CurrentStage,
     bool SimulateFailure,

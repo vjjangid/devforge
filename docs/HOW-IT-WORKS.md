@@ -4,6 +4,8 @@ A plain-language tour of DevForge Phase 1: what each part is, why it exists, how
 
 The [README](../README.md) is the reference (every endpoint, every setting). This document is the explanation. Read this one first.
 
+This document describes Phase 1, where deployments are simulated. Real deployments are covered in [Real deployments (Docker mode)](REAL-DEPLOYMENTS.md).
+
 ## Contents
 
 1. [What DevForge is](#1-what-devforge-is)

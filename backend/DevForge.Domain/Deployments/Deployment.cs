@@ -10,6 +10,7 @@ public sealed class Deployment
     public const int CommitShaMaxLength = 40;
     public const int ErrorMessageMaxLength = 2000;
     public const int WorkerIdMaxLength = 200;
+    public const int UrlMaxLength = 500;
 
     /// <summary>Statuses in which a deployment is still waiting for, or being processed by, a worker.</summary>
     public static readonly DeploymentStatus[] ActiveStatuses = [DeploymentStatus.Queued, DeploymentStatus.Running];
@@ -28,6 +29,12 @@ public sealed class Deployment
     public int Number { get; private set; }
     public string Version { get; private set; } = null!;
     public string? CommitSha { get; private set; }
+
+    /// <summary>
+    /// Where the application was published by this deployment. It only stays reachable until a
+    /// later deployment replaces it.
+    /// </summary>
+    public string? Url { get; private set; }
 
     public DeploymentStatus Status { get; private set; }
 
@@ -88,6 +95,36 @@ public sealed class Deployment
         }
 
         CurrentStage = stage;
+    }
+
+    /// <summary>Records which commit this deployment is building, once the source has been fetched.</summary>
+    /// <param name="commitSha">A full 40-character Git commit id.</param>
+    public void RecordCommit(string commitSha)
+    {
+        EnsureStatus(DeploymentStatus.Running, nameof(RecordCommit));
+
+        var normalised = commitSha.Trim().ToLowerInvariant();
+        if (normalised.Length != CommitShaMaxLength || !normalised.All(char.IsAsciiHexDigit))
+        {
+            throw new ArgumentException($"'{commitSha}' is not a full Git commit id.", nameof(commitSha));
+        }
+
+        CommitSha = normalised;
+    }
+
+    /// <summary>Records where this deployment's application was made reachable.</summary>
+    public void RecordUrl(string url)
+    {
+        EnsureStatus(DeploymentStatus.Running, nameof(RecordUrl));
+
+        if (url.Length > UrlMaxLength
+            || !Uri.TryCreate(url, UriKind.Absolute, out var parsed)
+            || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps))
+        {
+            throw new ArgumentException($"'{url}' is not an http(s) URL.", nameof(url));
+        }
+
+        Url = url;
     }
 
     public void AttachBuild(Build build)

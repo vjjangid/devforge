@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, SlicePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -15,7 +15,7 @@ const CLOCK_TICK_MS = 1000;
 
 @Component({
   selector: 'app-deployment-detail',
-  imports: [RouterLink, DatePipe, DurationPipe, StatusBadge, Loading, ErrorAlert, PipelineSteps, DeploymentLogs],
+  imports: [RouterLink, DatePipe, SlicePipe, DurationPipe, StatusBadge, Loading, ErrorAlert, PipelineSteps, DeploymentLogs],
   providers: [DeploymentTracker],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './deployment-detail.html',

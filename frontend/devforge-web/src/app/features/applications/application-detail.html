@@ -13,6 +13,9 @@
       <p class="subtitle mono">{{ view.application.repositoryDisplayName }} · {{ view.application.branch }}</p>
     </div>
     <div class="actions">
+      @if (view.application.url; as url) {
+        <a class="btn" [href]="url" target="_blank" rel="noopener noreferrer">Open application ↗</a>
+      }
       <a class="btn" [routerLink]="['/applications', view.application.id, 'edit']">Edit</a>
       <button type="button" class="btn" (click)="deletion.request(view.application)">Delete</button>
     </div>
@@ -37,6 +40,16 @@
           <div>
             <dt>Runtime</dt>
             <dd>{{ view.application.runtimeDisplayName }}</dd>
+          </div>
+          <div>
+            <dt>Live at</dt>
+            <dd>
+              @if (view.application.url; as url) {
+                <a [href]="url" target="_blank" rel="noopener noreferrer" class="mono">{{ url }}</a>
+              } @else {
+                <span class="muted">Not running</span>
+              }
+            </dd>
           </div>
           <div>
             <dt>Created</dt>

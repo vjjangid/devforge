@@ -6,6 +6,8 @@ DevForge is a small, self-hosted developer platform — a simplified Heroku/Rend
 
 New to the project? Read **[How DevForge works](docs/HOW-IT-WORKS.md)** first: a plain-language tour of every part, with things to try once it is running.
 
+For the Phase 2 feature, read **[Real deployments (Docker mode)](docs/REAL-DEPLOYMENTS.md)**: where a repository is downloaded, how it is built, and how the application is started.
+
 ## Contents
 
 1. [Architecture](#architecture)
@@ -96,7 +98,7 @@ devforge/
 │   ├── DevForge.UnitTests/        Domain and application logic
 │   └── DevForge.IntegrationTests/ API and worker against PostgreSQL
 ├── docker/                        Dockerfiles and nginx config
-├── docs/                          Plain-language guide (HOW-IT-WORKS.md)
+├── docs/                          Plain-language guides (HOW-IT-WORKS.md, REAL-DEPLOYMENTS.md)
 ├── docker-compose.yml
 ├── .env.example
 ├── Directory.Build.props          Shared build settings (nullable, warnings as errors)
@@ -288,10 +290,40 @@ Settings are read from `appsettings.json`, then `appsettings.{Environment}.json`
 | `Features:FailureSimulation` | API | `false` | Allow deployments to request a simulated failure |
 | `Worker:PollingInterval` | Worker | `00:00:02` | Wait between queue checks when idle |
 | `Worker:WorkerId` | Worker | machine name + random suffix | Name recorded on claimed deployments |
+| `Execution:Mode` | Worker | `Simulated` | `Simulated` (scripted stages) or `Docker` (real git and docker, see below) |
+| `Execution:CommandTimeout` | Worker | `00:10:00` | Longest a single external command may run |
+| `Execution:WorkspaceRoot` | Worker | `<temp>/devforge/workspaces` | Where each deployment's source is cloned (one folder per deployment) |
+| `Execution:HealthCheckPath` | Worker | `/` | Path requested on a newly started application; any answer below 500 counts as up |
+| `Execution:HealthCheckTimeout` | Worker | `00:01:00` | How long a new container has to start answering |
+| `Execution:HealthCheckInterval` | Worker | `00:00:01` | Pause between health check attempts |
 | `Simulation:StageDelay` | Worker | `00:00:03` | Duration of each simulated stage |
 | `Simulation:FailureStage` | Worker | `Testing` | Stage at which a simulated failure happens |
 
 Logs are structured JSON on the console outside Development, and single-line text in Development.
+
+### Docker execution mode (Phase 2)
+
+`Execution:Mode=Docker` swaps the simulated executor for `DockerStageExecutor`, which runs real commands on the machine the worker runs on. All four stages are real in this mode:
+
+- **Preparing** checks that `git` and a reachable Docker daemon are available, clones the application's branch (latest commit only) into a per-deployment workspace, and records the commit SHA on the deployment.
+- **Building** runs `docker build` on the workspace using the `Dockerfile` at the repository root, and records the image on the deployment. Images are named `devforge/<application-slug>-<id suffix>:<version>`. A repository without a `Dockerfile` fails the stage.
+- **Testing** builds the Dockerfile stage named `test` (`docker build --target test`), which must fail when a test fails. A Dockerfile without that stage is not an error: the stage logs a warning and no tests run.
+- **Deploying** starts the image as a container on a free port of `127.0.0.1` (the port comes from the image's `EXPOSE`), waits for it to answer `Execution:HealthCheckPath`, then removes the application's previous container. If the new container never answers it is removed and the previous version keeps running. The address is stored on the deployment and shown on the application page.
+
+Images and containers carry the labels `devforge.application-id`, `devforge.deployment-id` and `devforge.version`.
+
+Not done yet: workspaces and old images are never cleaned up, deleting an application does not stop its container, and deployments cannot be cancelled. To stop an application's container by hand:
+
+```bash
+docker rm -f $(docker ps -aq --filter label=devforge.application-id=<application id>)
+```
+
+The worker container has neither tool, so run the worker on your machine to use this mode, and stop the Compose worker first or it will take the deployment instead:
+
+```bash
+docker compose stop worker
+Execution__Mode=Docker dotnet run --project worker/DevForge.Worker
+```
 
 ## Tests
 
@@ -301,6 +333,12 @@ dotnet test
 
 # Frontend
 cd frontend/devforge-web && npm test -- --watch=false
+```
+
+Two tests build images with a real Docker daemon. They are skipped unless you opt in:
+
+```bash
+DEVFORGE_DOCKER_TESTS=1 dotnet test --filter "FullyQualifiedName~DockerBuildTests"
 ```
 
 The integration tests create a throwaway database per test class and drop it afterwards. They connect to `localhost:5440` by default; set `DEVFORGE_TEST_CONNECTION` to point them at another server.
@@ -320,7 +358,7 @@ What is covered:
 - **No cancel, retry or rollback.** The `Cancelled` status exists in the model but nothing sets it.
 - **Polling, not push.** The UI polls every two seconds; there is no WebSocket or SignalR.
 - **No pagination.** Lists and logs are returned whole.
-- **`commit_sha` is always null** until real Git integration exists.
+- **`commit_sha` is null in Simulated mode**; it is only recorded when the worker runs in Docker mode.
 - **Only one runtime** (`.NET 10`) is in the catalogue.
 - **The worker has no health endpoint**, so Compose cannot tell a hung worker from a healthy one.
 - **"Failed deployments" on the dashboard is an all-time count.**

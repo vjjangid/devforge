@@ -12,6 +12,8 @@ export interface Application {
   runtimeDisplayName: string;
   description: string | null;
   status: ApplicationStatus;
+  /** Where the running application can be opened, once a deployment has published it. */
+  url: string | null;
   lastDeployment: DeploymentSummary | null;
   createdAt: string;
   updatedAt: string;

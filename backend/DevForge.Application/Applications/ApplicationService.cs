@@ -51,7 +51,7 @@ public sealed class ApplicationService(IAppDbContext db, TimeProvider clock, ILo
 
         logger.LogInformation("Created application {ApplicationId} ({ApplicationName})", application.Id, application.Name);
 
-        return new ApplicationSnapshot(application, LatestDeployment: null).ToDto();
+        return new ApplicationSnapshot(application, LatestDeployment: null, LiveUrl: null).ToDto();
     }
 
     public async Task<ApplicationDto> UpdateAsync(Guid id, UpdateApplicationRequest request, CancellationToken cancellationToken)

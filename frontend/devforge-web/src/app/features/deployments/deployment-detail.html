@@ -33,7 +33,14 @@
     } @else if (deployment.status === 'Succeeded') {
       <section class="outcome succeeded">
         <h2><span class="dot" aria-hidden="true"></span>Deployment succeeded</h2>
-        <p>{{ deployment.version }} of {{ deployment.applicationName }} is live.</p>
+        @if (deployment.url; as url) {
+          <p>
+            {{ deployment.version }} of {{ deployment.applicationName }} is live at
+            <a [href]="url" target="_blank" rel="noopener noreferrer" class="mono">{{ url }}</a>
+          </p>
+        } @else {
+          <p>{{ deployment.version }} of {{ deployment.applicationName }} completed.</p>
+        }
       </section>
     }
 
@@ -52,6 +59,26 @@
     <section class="card">
       <div class="card-body">
         <dl class="details">
+          <div>
+            <dt>Commit</dt>
+            <dd>
+              @if (deployment.commitSha; as commitSha) {
+                <span class="mono" [title]="commitSha">{{ commitSha | slice: 0 : 7 }}</span>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Image</dt>
+            <dd>
+              @if (deployment.imageReference; as imageReference) {
+                <span class="mono">{{ imageReference }}</span>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </dd>
+          </div>
           <div>
             <dt>Queued</dt>
             <dd>{{ deployment.createdAt | date: 'y-MM-dd HH:mm:ss' }}</dd>

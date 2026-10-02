@@ -1,5 +1,6 @@
 using System.Data.Common;
 using DevForge.Application.Pipeline;
+using DevForge.Infrastructure.Execution;
 using Microsoft.Extensions.Options;
 
 namespace DevForge.Worker;
@@ -11,6 +12,7 @@ namespace DevForge.Worker;
 internal sealed class DeploymentWorker(
     IServiceScopeFactory scopeFactory,
     IOptions<WorkerOptions> options,
+    IOptions<ExecutionOptions> execution,
     TimeProvider clock,
     ILogger<DeploymentWorker> logger) : BackgroundService
 {
@@ -22,8 +24,9 @@ internal sealed class DeploymentWorker(
     {
         var pollingInterval = options.Value.PollingInterval;
         logger.LogInformation(
-            "Worker {WorkerId} started, polling every {PollingInterval}",
+            "Worker {WorkerId} started in {ExecutionMode} mode, polling every {PollingInterval}",
             _workerId,
+            execution.Value.Mode,
             pollingInterval);
 
         while (!stoppingToken.IsCancellationRequested)

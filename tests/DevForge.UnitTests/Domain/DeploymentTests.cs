@@ -116,6 +116,51 @@ public class DeploymentTests
         Assert.Equal(Deployment.ErrorMessageMaxLength, deployment.ErrorMessage!.Length);
     }
 
+    [Fact]
+    public void RecordCommit_stores_a_full_commit_id_in_lower_case()
+    {
+        var deployment = Running();
+
+        deployment.RecordCommit("7FD1A60B01F91B314F59955A4E4D4E80D8EDF11D\n");
+
+        Assert.Equal("7fd1a60b01f91b314f59955a4e4d4e80d8edf11d", deployment.CommitSha);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("7fd1a60")]
+    [InlineData("zzd1a60b01f91b314f59955a4e4d4e80d8edf11d")]
+    public void RecordCommit_rejects_anything_that_is_not_a_full_commit_id(string commitSha)
+    {
+        Assert.Throws<ArgumentException>(() => Running().RecordCommit(commitSha));
+    }
+
+    [Fact]
+    public void RecordCommit_requires_a_running_deployment()
+    {
+        Assert.Throws<InvalidStateTransitionException>(
+            () => Queued().RecordCommit("7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"));
+    }
+
+    [Fact]
+    public void RecordUrl_stores_where_the_application_was_published()
+    {
+        var deployment = Running();
+
+        deployment.RecordUrl("http://localhost:49200");
+
+        Assert.Equal("http://localhost:49200", deployment.Url);
+    }
+
+    [Theory]
+    [InlineData("localhost:49200")]
+    [InlineData("ftp://localhost/app")]
+    [InlineData("")]
+    public void RecordUrl_rejects_anything_that_is_not_an_http_url(string url)
+    {
+        Assert.Throws<ArgumentException>(() => Running().RecordUrl(url));
+    }
+
     private static Deployment Queued() => Deployment.Queue(Guid.NewGuid(), number: 1, simulateFailure: false, Now);
 
     private static Deployment Running()

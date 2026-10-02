@@ -15,6 +15,10 @@ export interface Deployment {
   number: number;
   version: string;
   commitSha: string | null;
+  /** The container image this deployment built, once the build stage has finished. */
+  imageReference: string | null;
+  /** Where the application can be opened. Only set while this deployment is the one being served. */
+  url: string | null;
   status: DeploymentStatus;
   currentStage: DeploymentStage | null;
   simulateFailure: boolean;

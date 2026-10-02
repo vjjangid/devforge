@@ -3,7 +3,8 @@ using DevForge.Domain.Deployments;
 
 namespace DevForge.Application.Applications;
 
-internal sealed record ApplicationSnapshot(App Application, DeploymentSummaryDto? LatestDeployment)
+/// <param name="LiveUrl">The URL published by the most recent deployment that succeeded.</param>
+internal sealed record ApplicationSnapshot(App Application, DeploymentSummaryDto? LatestDeployment, string? LiveUrl)
 {
     public ApplicationDto ToDto() =>
         new(
@@ -16,6 +17,7 @@ internal sealed record ApplicationSnapshot(App Application, DeploymentSummaryDto
             RuntimeCatalog.DisplayNameOf(Application.Runtime),
             Application.Description,
             StatusFor(LatestDeployment?.Status),
+            LiveUrl,
             LatestDeployment,
             Application.CreatedAt,
             Application.UpdatedAt);
@@ -34,7 +36,7 @@ internal sealed record ApplicationSnapshot(App Application, DeploymentSummaryDto
 
 internal static class ApplicationProjections
 {
-    /// <summary>Pairs each application with its most recent deployment in a single query.</summary>
+    /// <summary>Pairs each application with its most recent deployment and its live URL in a single query.</summary>
     public static IQueryable<ApplicationSnapshot> WithLatestDeployment(this IQueryable<App> applications) =>
         applications.Select(application => new ApplicationSnapshot(
             application,
@@ -47,5 +49,11 @@ internal static class ApplicationProjections
                     deployment.Status,
                     deployment.CreatedAt,
                     deployment.CompletedAt))
+                .FirstOrDefault(),
+            // A failed deployment leaves the previous version serving, so look past it.
+            application.Deployments
+                .Where(deployment => deployment.Status == DeploymentStatus.Succeeded)
+                .OrderByDescending(deployment => deployment.Number)
+                .Select(deployment => deployment.Url)
                 .FirstOrDefault()));
 }

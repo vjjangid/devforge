@@ -48,6 +48,16 @@ public sealed class DeploymentRunner(
 
                 var outcome = await executor.ExecuteAsync(CreateContext(deployment, stage, log), cancellationToken);
 
+                if (outcome.CommitSha is { } commitSha)
+                {
+                    deployment.RecordCommit(commitSha);
+                }
+
+                if (outcome.Url is { } url)
+                {
+                    deployment.RecordUrl(url);
+                }
+
                 if (stage == DeploymentStage.Building)
                 {
                     build!.Succeed(outcome.ArtifactReference, clock.GetUtcNow());

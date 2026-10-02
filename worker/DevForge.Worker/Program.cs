@@ -6,7 +6,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddDeploymentPipeline();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddSimulatedStageExecution(builder.Configuration);
+builder.Services.AddStageExecution(builder.Configuration);
 
 builder.Services.AddOptions<WorkerOptions>()
     .Bind(builder.Configuration.GetSection(WorkerOptions.SectionName))

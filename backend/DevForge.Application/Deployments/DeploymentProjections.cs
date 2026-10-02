@@ -9,6 +9,9 @@ internal sealed record DeploymentRow(
     int Number,
     string Version,
     string? CommitSha,
+    string? ImageReference,
+    string? Url,
+    bool IsLive,
     DeploymentStatus Status,
     DeploymentStage? CurrentStage,
     bool SimulateFailure,
@@ -25,6 +28,8 @@ internal sealed record DeploymentRow(
             Number,
             Version,
             CommitSha,
+            ImageReference,
+            IsLive ? Url : null,
             Status,
             CurrentStage,
             SimulateFailure,
@@ -45,6 +50,12 @@ internal static class DeploymentProjections
             deployment.Number,
             deployment.Version,
             deployment.CommitSha,
+            deployment.Build!.ArtifactReference,
+            deployment.Url,
+            // Live = the newest deployment of its application that succeeded.
+            deployment.Status == DeploymentStatus.Succeeded
+                && !deployment.Application.Deployments.Any(
+                    other => other.Status == DeploymentStatus.Succeeded && other.Number > deployment.Number),
             deployment.Status,
             deployment.CurrentStage,
             deployment.SimulateFailure,

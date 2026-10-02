@@ -30,6 +30,7 @@ public class AppTests
     [InlineData("App", "https://user:secret@github.com/a/b", "main", "dotnet-10", nameof(App.RepositoryUrl))]
     [InlineData("App", "github.com/a/b", "", "dotnet-10", nameof(App.Branch))]
     [InlineData("App", "github.com/a/b", "feature branch", "dotnet-10", nameof(App.Branch))]
+    [InlineData("App", "github.com/a/b", "--upload-pack=evil", "dotnet-10", nameof(App.Branch))]
     [InlineData("App", "github.com/a/b", "main", "cobol", nameof(App.Runtime))]
     public void Create_rejects_invalid_input(string name, string repositoryUrl, string branch, string runtime, string expectedField)
     {

@@ -68,6 +68,12 @@ public sealed class App
             throw new DomainValidationException(nameof(Branch), "Branch must not contain whitespace.");
         }
 
+        // Git forbids it anyway, and it keeps a branch name from ever being read as a command-line option.
+        if (value.StartsWith('-'))
+        {
+            throw new DomainValidationException(nameof(Branch), "Branch must not start with '-'.");
+        }
+
         return value;
     }
 }
